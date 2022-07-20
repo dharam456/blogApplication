@@ -6,13 +6,18 @@ import mainpackage.model.SignupResponse;
 import mainpackage.model.User;
 import mainpackage.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 //@Component
 @Service
 public class UserService {
+
+     @Value("${pepper}")
+     String pepper;
 
     @Autowired
     UserRepository userRepository;
@@ -25,7 +30,7 @@ public class UserService {
             loginResponse.setStatus(false);
             loginResponse.setMessage("user not found ,invalid email");
 
-        }else if(user.getPassword().equals(loginRequest.getPassword())) {
+        }else if(BCrypt.hashpw(loginRequest.getPassword(),user.getSalt()+pepper).equals(user.getPassword())) {
             loginResponse.setStatus(true);
             loginResponse.setMessage("login successful");
         }else {
@@ -37,17 +42,25 @@ public class UserService {
 
 
     public  SignupResponse register(User user){
-     User newUser= userRepository.save(user);
-        SignupResponse signupResponse=new SignupResponse();
-        if(userRepository.findByEmail(newUser.getEmail())==null)
-        {   signupResponse.setStatus(false);
-            signupResponse.setMessage("signup failed");
 
-        }else {
-            signupResponse.setStatus(true);
-            signupResponse.setMessage("signup success");
-        }
-        return signupResponse;
+        User currerntUser =userRepository.findByEmail(user.getEmail());
+        SignupResponse signupResponse=new SignupResponse();
+        if(currerntUser !=null)
+        { signupResponse.setStatus(false);
+            signupResponse.setMessage("user already exist");
+            return signupResponse;
+
+        } else {
+            String salt= BCrypt.gensalt();
+            String hasedPassword=BCrypt.hashpw(user.getPassword(),salt+pepper);
+            user.setPassword(hasedPassword);
+            user.setSalt(salt);
+            userRepository.save(user);
+
+        signupResponse.setStatus(true);
+        signupResponse.setMessage("signup successful!");
+        return  signupResponse;
+    }
     }
 
 }
