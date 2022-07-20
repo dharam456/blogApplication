@@ -18,6 +18,8 @@ public class UserController {
     @Autowired
     UserService userService;
 
+
+
     @PostMapping(value = "/loginreq",consumes = "application/json",produces = "application/json")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         try {
